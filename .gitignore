@@ -1,0 +1,7 @@
+venv
+build
+src/.idea
+.idea
+*.elf
+*.sav
+*.gba
