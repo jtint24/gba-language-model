@@ -1,6 +1,10 @@
 import random
 import string
 from typing import List, Dict
+from datasets import load_dataset
+from unidecode import unidecode
+
+dataset = load_dataset("AlderleyAI/coqa_chat", "default")
 
 
 class PrefixTreeNode:
@@ -14,8 +18,6 @@ class PrefixTreeNode:
     def add_child(self, key: str, payload: List[str]):
         if len(key) == 0:
             self.payload += payload
-        elif len(key) == 1:
-            self.add_child_single(key, payload)
         else:
             if key[0] not in self.children:
                 self.children[key[0]] = PrefixTreeNode([])
@@ -48,67 +50,46 @@ def generate_markov_dict(texts: List[str]) -> Dict[str, List[str]]:
     for text in texts:
         cleaned_punctuation = text.translate(str.maketrans('', '', string.punctuation))
         cleaned_punctuation = cleaned_punctuation.replace("’", "")
-        words = [""] + cleaned_punctuation.split(" ") + [""]
-        for word1, word2 in zip(words, words[1:]):
-            if word1 not in markov_dict:
-                markov_dict[word1] = []
-            markov_dict[word1].append(word2)
+        words = ["", ""] + cleaned_punctuation.split(" ") + [""]
+        for word1, word2, word3 in zip(words, words[1:], words[2:]):
+            key = word1+" "+word2
+            if key not in markov_dict:
+                markov_dict[key] = []
+            markov_dict[key].append(word3)
     return markov_dict
+
+def get_text_from_dataset():
+    n = 0
+    max_n = 500
+    out_data = []
+    for row in dataset["train"].to_iterable_dataset():
+        if n % 10 == 0:
+            pass
+            # print(n, len(out_data))
+        text = row["answer"]
+        out_data.append(text)
+        n += 1
+        if n == max_n:
+            break
+    return out_data
 
 def main():
     ptn = PrefixTreeNode([])
 
-    texts = [
-        "Hello",
-        "Hi",
-        "Hey",
-        "Good morning",
-        "Good afternoon",
-        "Good evening",
-        "How are you?",
-        "How’s it going?",
-        "What’s up?",
-        "Howdy",
-        "Greetings",
-        "Nice to meet you",
-        "How have you been?",
-        "Long time no see",
-        "What’s new?",
-        "How’s everything?",
-        "How’s your day going?",
-        "It’s good to see you",
-        "Welcome",
-        "Hiya",
-        "Hi, how’s your day going?",
-        "Hello! What have you been up to lately?",
-        "Hey, do you have any plans for the weekend?",
-        "Good morning! How did you sleep?",
-        "Hi there! What’s new with you?",
-        "Hello! How’s work (or school) been?",
-        "Hey, have you seen any good movies recently?",
-        "Good afternoon! Have you tried any new restaurants lately?",
-        "Hi! What’s your favorite way to spend a day off?",
-        "Hello! Do you have any hobbies you’re passionate about?",
-        "Hey, how’s your family doing?",
-        "Good evening! What’s the best book you’ve read recently?",
-        "Hi there! Do you follow any sports teams?",
-        "Hello! What’s the most interesting thing you’ve learned recently?",
-        "Hey, do you have any travel plans coming up?",
-        "Good morning! What’s your favorite type of music?",
-        "Hi! Do you like cooking? What’s your favorite dish to make?",
-        "Hello! How do you like to unwind after a long day?",
-        "Hey, have you been to any fun events lately?",
-        "Good afternoon! What’s your favorite way to stay active?",
-    ]
+    texts = get_text_from_dataset()
+    # print(texts)
 
     words = generate_markov_dict(texts)
+    # print(words["the"])
 
     for word1, payload in words.items():
-        processed_payload = [w.lower() for w in payload] if len(word1) == 0 else [" "+w.lower() if len(w)>0 else "" for w in payload]
-        ptn.add_child(word1.lower()[::-1], processed_payload)
-
-    print(ptn.to_cpp_code("last_word"))
-
+        processed_payload = [unidecode(w.lower()) for w in payload] if len(word1) == 0 else [" "+unidecode(w.lower()) if len(w)>0 else "" for w in payload]
+        ptn.add_child(unidecode(word1).lower()[::-1], processed_payload)
+    # print(ptn.children['e'].children['h'].children['t'])
+    print("bn::string<20> build_generated_message(bn::string<60> user_response, bn::string<60> last_word, bn::random rand) {")
+    print(ptn.to_cpp_code("last_word", level=0))
+    print("\treturn \"\";")
+    print("}")
 
 
 
