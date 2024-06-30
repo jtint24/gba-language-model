@@ -1,5 +1,6 @@
 import random
-from typing import List
+import string
+from typing import List, Dict
 
 
 class PrefixTreeNode:
@@ -41,22 +42,72 @@ class PrefixTreeNode:
             body += ("\t"*level) + "}\n"
         return body
 
+def generate_markov_dict(texts: List[str]) -> Dict[str, List[str]]:
+    markov_dict = {}
 
-
+    for text in texts:
+        cleaned_punctuation = text.translate(str.maketrans('', '', string.punctuation))
+        cleaned_punctuation = cleaned_punctuation.replace("’", "")
+        words = [""] + cleaned_punctuation.split(" ") + [""]
+        for word1, word2 in zip(words, words[1:]):
+            if word1 not in markov_dict:
+                markov_dict[word1] = []
+            markov_dict[word1].append(word2)
+    return markov_dict
 
 def main():
     ptn = PrefixTreeNode([])
 
-    words = {
-        "": ["1", "2"],
-        "1": ["x", "y"],
-        "2": ["a", "b"]
-    }
+    texts = [
+        "Hello",
+        "Hi",
+        "Hey",
+        "Good morning",
+        "Good afternoon",
+        "Good evening",
+        "How are you?",
+        "How’s it going?",
+        "What’s up?",
+        "Howdy",
+        "Greetings",
+        "Nice to meet you",
+        "How have you been?",
+        "Long time no see",
+        "What’s new?",
+        "How’s everything?",
+        "How’s your day going?",
+        "It’s good to see you",
+        "Welcome",
+        "Hiya",
+        "Hi, how’s your day going?",
+        "Hello! What have you been up to lately?",
+        "Hey, do you have any plans for the weekend?",
+        "Good morning! How did you sleep?",
+        "Hi there! What’s new with you?",
+        "Hello! How’s work (or school) been?",
+        "Hey, have you seen any good movies recently?",
+        "Good afternoon! Have you tried any new restaurants lately?",
+        "Hi! What’s your favorite way to spend a day off?",
+        "Hello! Do you have any hobbies you’re passionate about?",
+        "Hey, how’s your family doing?",
+        "Good evening! What’s the best book you’ve read recently?",
+        "Hi there! Do you follow any sports teams?",
+        "Hello! What’s the most interesting thing you’ve learned recently?",
+        "Hey, do you have any travel plans coming up?",
+        "Good morning! What’s your favorite type of music?",
+        "Hi! Do you like cooking? What’s your favorite dish to make?",
+        "Hello! How do you like to unwind after a long day?",
+        "Hey, have you been to any fun events lately?",
+        "Good afternoon! What’s your favorite way to stay active?",
+    ]
+
+    words = generate_markov_dict(texts)
 
     for word1, payload in words.items():
-        ptn.add_child(word1.lower(), [w.lower() for w in payload])
+        processed_payload = [w.lower() for w in payload] if len(word1) == 0 else [" "+w.lower() if len(w)>0 else "" for w in payload]
+        ptn.add_child(word1.lower()[::-1], processed_payload)
 
-    print(ptn.to_cpp_code("computer_response_so_far"))
+    print(ptn.to_cpp_code("last_word"))
 
 
 
